@@ -1,0 +1,189 @@
+<!DOCTYPE html>
+<html lang="th">
+<head>
+    <meta charset="UTF-8">
+    <meta name="viewport" content="width=device-width, initial-scale=1.0">
+    <title>โปรแกรมคำนวณเวลา & เวลาสิ้นสุด</title>
+    <style>
+        body { 
+            font-family: 'Segoe UI', Tahoma, Geneva, Verdana, sans-serif; 
+            background-color: #f4f6f9; 
+            padding: 20px; 
+            display: flex; 
+            justify-content: center; 
+            align-items: center;
+            min-height: 95vh;
+        }
+        .card { 
+            background: white; 
+            padding: 30px 25px; 
+            border-radius: 16px; 
+            box-shadow: 0 10px 30px rgba(0,0,0,0.08); 
+            width: 100%; 
+            max-width: 420px; 
+        }
+        h2 { 
+            text-align: center; 
+            color: #212529; 
+            margin-bottom: 25px; 
+            font-size: 22px;
+            font-weight: 700;
+        }
+        .input-group { 
+            margin-bottom: 20px; 
+        }
+        .input-group label { 
+            display: block; 
+            margin-bottom: 10px; 
+            font-weight: bold; 
+            color: #495057; 
+            font-size: 14px;
+        }
+        .time-inputs { 
+            display: flex; 
+            gap: 12px; 
+        }
+        input { 
+            width: 100%; 
+            padding: 14px; 
+            border: 1px solid #ced4da; 
+            border-radius: 10px; 
+            font-size: 16px; 
+            text-align: center; 
+            background-color: #fff;
+            color: #212529;
+            transition: border-color 0.15s ease-in-out;
+        }
+        input:focus {
+            border-color: #007bff;
+            outline: none;
+        }
+        /* ซ่อนลูกศรในช่องใส่ตัวเลข */
+        input::-webkit-outer-spin-button,
+        input::-webkit-inner-spin-button {
+            -webkit-appearance: none;
+            margin: 0;
+        }
+        input[type=number] {
+            -moz-appearance: textfield;
+        }
+        button { 
+            width: 100%; 
+            padding: 15px; 
+            background-color: #007bff; 
+            color: white; 
+            border: none; 
+            border-radius: 10px; 
+            font-size: 16px; 
+            font-weight: bold; 
+            cursor: pointer; 
+            transition: background-color 0.2s; 
+            margin-bottom: 15px;
+        }
+        button:hover { 
+            background-color: #0056b3; 
+        }
+        /* การ์ดสีเหลืองแสดงเวลาที่เหลือ */
+        .result { 
+            padding: 18px; 
+            background-color: #fff3cd;
+            border: 1px solid #ffeeba;
+            color: #856404;
+            border-radius: 10px; 
+            text-align: center; 
+            font-size: 18px; 
+            font-weight: bold; 
+            display: none; 
+            margin-bottom: 15px;
+            line-height: 1.6;
+        }
+        /* การ์ดสีฟ้าแสดงเวลาสิ้นสุด */
+        .endtime-box {
+            padding: 18px;
+            background-color: #e2f0fe;
+            border: 1px solid #b8daff;
+            color: #004085;
+            border-radius: 10px;
+            text-align: center;
+            font-size: 18px;
+            font-weight: bold;
+            display: none;
+            line-height: 1.6;
+        }
+    </style>
+</head>
+<body>
+
+<div class="card">
+    <h2>⏱️ คำนวณเวลา & เวลาสิ้นสุด</h2>
+    
+    <div class="input-group">
+        <label>1. เวลาที่มีอยู่ตอนนี้</label>
+        <div class="time-inputs">
+            <input type="number" id="current_hr" placeholder="ชั่วโมง" min="0">
+            <input type="number" id="current_min" placeholder="นาที" min="0" max="59">
+        </div>
+    </div>
+
+    <div class="input-group">
+        <label>2. เวลาที่ต้องการทั้งหมด</label>
+        <div class="time-inputs">
+            <input type="number" id="target_hr" placeholder="ชั่วโมง" min="0">
+            <input type="number" id="target_min" placeholder="นาที" min="0" max="59">
+        </div>
+    </div>
+
+    <button onclick="calculateTimeAndEnd()">คำนวณเวลา</button>
+
+    <div class="result" id="result_box"></div>
+    
+    <div class="endtime-box" id="endtime_box"></div>
+</div>
+
+<script>
+function calculateTimeAndEnd() {
+    let currentHr = parseInt(document.getElementById('current_hr').value) || 0;
+    let currentMin = parseInt(document.getElementById('current_min').value) || 0;
+    let targetHr = parseInt(document.getElementById('target_hr').value) || 0;
+    let targetMin = parseInt(document.getElementById('target_min').value) || 0;
+
+    let currentTotalMinutes = (currentHr * 60) + currentMin;
+    let targetTotalMinutes = (targetHr * 60) + targetMin;
+
+    let resultBox = document.getElementById('result_box');
+    let endtimeBox = document.getElementById('endtime_box');
+    
+    resultBox.style.display = "block";
+
+    if (currentTotalMinutes >= targetTotalMinutes) {
+        resultBox.style.backgroundColor = "#d4edda";
+        resultBox.style.border = "1px solid #c3e6cb";
+        resultBox.style.color = "#155724";
+        resultBox.innerHTML = "🎉 ครบจำนวนเวลาที่ต้องการแล้ว!";
+        endtimeBox.style.display = "none";
+    } else {
+        let remainingMinutes = targetTotalMinutes - currentTotalMinutes;
+        let diffHr = Math.floor(remainingMinutes / 60);
+        let diffMin = remainingMinutes % 60;
+
+        // แสดงเวลาที่เหลือแบบตัวหนาสีแดงในรูป
+        resultBox.style.backgroundColor = "#fff3cd";
+        resultBox.style.border = "1px solid #ffeeba";
+        resultBox.style.color = "#856404";
+        resultBox.innerHTML = `⏳ เหลือเวลาอีก:<br><span style="font-size: 24px; color: #dc3545; font-weight: 800;">${diffHr} ชั่วโมง ${diffMin} นาที</span>`;
+
+        // คำนวณเวลาสิ้นสุดจากเวลาปัจจุบันของอุปกรณ์
+        let now = new Date();
+        now.setMinutes(now.getMinutes() + remainingMinutes);
+
+        let endHr = String(now.getHours()).padStart(2, '0');
+        let endMin = String(now.getMinutes()).padStart(2, '0');
+
+        endtimeBox.style.display = "block";
+        endtimeBox.innerHTML = `🏁 จะครบกำหนดตอนเวลาประมาณ:<br><span style="font-size: 26px; color: #004085; font-weight: 800;">${endHr}:${endMin} น.</span>`;
+    }
+}
+</script>
+
+</body>
+</html>
