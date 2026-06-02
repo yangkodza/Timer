@@ -4,6 +4,8 @@
     <meta charset="UTF-8">
     <meta name="viewport" content="width=device-width, initial-scale=1.0">
     <title>โปรแกรมคำนวณเวลา & เวลาสิ้นสุด</title>
+    <link rel="manifest" href="manifest.json">
+    <meta name="theme-color" content="#007bff">
     <style>
         body { 
             font-family: 'Segoe UI', Tahoma, Geneva, Verdana, sans-serif; 
@@ -11,7 +13,7 @@
             padding: 20px; 
             display: flex; 
             justify-content: center; 
-            align-items: center;
+            align-items: flex-start; 
             min-height: 95vh;
         }
         .card { 
@@ -21,6 +23,7 @@
             box-shadow: 0 10px 30px rgba(0,0,0,0.08); 
             width: 100%; 
             max-width: 420px; 
+            margin-top: 10px; 
         }
         h2 { 
             text-align: center; 
@@ -58,7 +61,6 @@
             border-color: #007bff;
             outline: none;
         }
-        /* ซ่อนลูกศรในช่องใส่ตัวเลข */
         input::-webkit-outer-spin-button,
         input::-webkit-inner-spin-button {
             -webkit-appearance: none;
@@ -83,7 +85,6 @@
         button:hover { 
             background-color: #0056b3; 
         }
-        /* การ์ดสีเหลืองแสดงเวลาที่เหลือ */
         .result { 
             padding: 18px; 
             background-color: #fff3cd;
@@ -97,7 +98,6 @@
             margin-bottom: 15px;
             line-height: 1.6;
         }
-        /* การ์ดสีฟ้าแสดงเวลาสิ้นสุด */
         .endtime-box {
             padding: 18px;
             background-color: #e2f0fe;
@@ -110,6 +110,14 @@
             display: none;
             line-height: 1.6;
         }
+        /* ปุ่มสำหรับกดติดตั้งแอป */
+        #install_btn {
+            background-color: #28a745;
+            display: none;
+        }
+        #install_btn:hover {
+            background-color: #218838;
+        }
     </style>
 </head>
 <body>
@@ -117,6 +125,8 @@
 <div class="card">
     <h2>⏱️ คำนวณเวลา & เวลาสิ้นสุด</h2>
     
+    <button id="install_btn">📲 ติดตั้งแอปคำนวณเวลา</button>
+
     <div class="input-group">
         <label>1. เวลาที่มีอยู่ตอนนี้</label>
         <div class="time-inputs">
@@ -136,7 +146,6 @@
     <button onclick="calculateTimeAndEnd()">คำนวณเวลา</button>
 
     <div class="result" id="result_box"></div>
-    
     <div class="endtime-box" id="endtime_box"></div>
 </div>
 
@@ -166,13 +175,11 @@ function calculateTimeAndEnd() {
         let diffHr = Math.floor(remainingMinutes / 60);
         let diffMin = remainingMinutes % 60;
 
-        // แสดงเวลาที่เหลือแบบตัวหนาสีแดงในรูป
         resultBox.style.backgroundColor = "#fff3cd";
         resultBox.style.border = "1px solid #ffeeba";
         resultBox.style.color = "#856404";
         resultBox.innerHTML = `⏳ เหลือเวลาอีก:<br><span style="font-size: 24px; color: #dc3545; font-weight: 800;">${diffHr} ชั่วโมง ${diffMin} นาที</span>`;
 
-        // คำนวณเวลาสิ้นสุดจากเวลาปัจจุบันของอุปกรณ์
         let now = new Date();
         now.setMinutes(now.getMinutes() + remainingMinutes);
 
@@ -183,6 +190,36 @@ function calculateTimeAndEnd() {
         endtimeBox.innerHTML = `🏁 จะครบกำหนดตอนเวลาประมาณ:<br><span style="font-size: 26px; color: #004085; font-weight: 800;">${endHr}:${endMin} น.</span>`;
     }
 }
+
+// ---- สคริปต์ระบบ PWA สำหรับลงทะเบียนตัวแอป ----
+if ('serviceWorker' in navigator) {
+    navigator.serviceWorker.register('sw.js').catch(err => console.log("SW error:", err));
+}
+
+let deferredPrompt;
+const installBtn = document.getElementById('install_btn');
+
+window.addEventListener('beforeinstallprompt', (e) => {
+    e.preventDefault();
+    deferredPrompt = e;
+    installBtn.style.display = 'block'; // แสดงปุ่มติดตั้ง
+});
+
+installBtn.addEventListener('click', async () => {
+    if (deferredPrompt) {
+        deferredPrompt.prompt();
+        const { outcome } = await deferredPrompt.userChoice;
+        if (outcome === 'accepted') {
+            installBtn.style.display = 'none';
+        }
+        deferredPrompt = null;
+    }
+});
+
+window.addEventListener('appinstalled', () => {
+    installBtn.style.display = 'none';
+    alert('ติดตั้งแอปสำเร็จแล้วบนหน้าจอโฮมของคุณ! 🎉');
+});
 </script>
 
 </body>
