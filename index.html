@@ -25,13 +25,12 @@
             max-width: 420px; 
             margin-top: 10px; 
         }
-        /* แก้ไขหัวข้อ: บีบขนาดและพื้นที่ ไม่ให้ล้นตกลงมาสองบรรทัด */
         h2 { 
             text-align: center; 
             color: #212529; 
             margin-bottom: 25px; 
-            font-size: calc(16px + 1vw); /* ปรับขนาดตามหน้าจอ */
-            white-space: nowrap;         /* บังคับให้อยู่ในบรรทัดเดียว */
+            font-size: calc(16px + 1vw); 
+            white-space: nowrap;         
             font-weight: 700;
         }
         .input-group { 
@@ -59,18 +58,10 @@
             color: #212529;
             transition: border-color 0.15s ease-in-out;
         }
-        input:focus {
-            border-color: #007bff;
-            outline: none;
-        }
-        input::-webkit-outer-spin-button,
-        input::-webkit-inner-spin-button {
-            -webkit-appearance: none;
-            margin: 0;
-        }
-        input[type=number] {
-            -moz-appearance: textfield;
-        }
+        input:focus { border-color: #007bff; outline: none; }
+        input::-webkit-outer-spin-button, input::-webkit-inner-spin-button { -webkit-appearance: none; margin: 0; }
+        input[type=number] { -moz-appearance: textfield; }
+        
         button { 
             width: 100%; 
             padding: 15px; 
@@ -84,9 +75,8 @@
             transition: background-color 0.2s; 
             margin-bottom: 15px;
         }
-        button:hover { 
-            background-color: #0056b3; 
-        }
+        button:hover { background-color: #0056b3; }
+        
         .result { 
             padding: 18px; 
             background-color: #fff3cd;
@@ -112,20 +102,9 @@
             display: none;
             line-height: 1.6;
         }
-        #install_btn {
-            background-color: #28a745;
-            display: none;
-        }
-        #install_btn:hover {
-            background-color: #218838;
-        }
-        .status-text {
-            text-align: center;
-            font-size: 12px;
-            color: #6c757d;
-            margin-top: -5px;
-            margin-bottom: 15px;
-        }
+        #install_btn { background-color: #28a745; display: none; }
+        #install_btn:hover { background-color: #218838; }
+        .status-text { text-align: center; font-size: 12px; color: #6c757d; margin-top: -5px; margin-bottom: 15px; }
     </style>
 </head>
 <body>
@@ -156,12 +135,15 @@
 
     <div class="result" id="result_box"></div>
     <div class="endtime-box" id="endtime_box"></div>
+    
+    <button id="voice_assist_btn" onclick="openVoiceAssistant()" style="display:none; background-color: #ffc107; color: #212529; margin-top: 10px;">
+        🎙️ กดแล้วพูด: "ตั้งปลุก [เวลาที่คำนวณได้]"
+    </button>
 </div>
 
 <script>
 let alarmTimer = null;
 
-// ขออนุญาตแจ้งเตือนเมื่อเปิดแอป
 window.addEventListener('load', () => {
     if ('Notification' in window) {
         Notification.requestPermission().then(permission => {
@@ -178,7 +160,6 @@ window.addEventListener('load', () => {
 });
 
 function calculateTimeAndEnd() {
-    // ล้างตัวนับเวลาเก่าทิ้งถ้ามีการกดคำนวณใหม่
     if (alarmTimer) clearTimeout(alarmTimer);
 
     let currentHr = parseInt(document.getElementById('current_hr').value) || 0;
@@ -191,6 +172,7 @@ function calculateTimeAndEnd() {
 
     let resultBox = document.getElementById('result_box');
     let endtimeBox = document.getElementById('endtime_box');
+    let voiceBtn = document.getElementById('voice_assist_btn');
     
     resultBox.style.display = "block";
 
@@ -200,6 +182,7 @@ function calculateTimeAndEnd() {
         resultBox.style.color = "#155724";
         resultBox.innerHTML = "🎉 ครบจำนวนเวลาที่ต้องการแล้ว!";
         endtimeBox.style.display = "none";
+        voiceBtn.style.display = "none";
     } else {
         let remainingMinutes = targetTotalMinutes - currentTotalMinutes;
         let diffHr = Math.floor(remainingMinutes / 60);
@@ -218,25 +201,29 @@ function calculateTimeAndEnd() {
 
         endtimeBox.style.display = "block";
         endtimeBox.innerHTML = `🏁 จะครบกำหนดตอนเวลาประมาณ:<br><span style="font-size: 26px; color: #004085; font-weight: 800;">${endHr}:${endMin} น.</span>`;
+        
+        // แสดงปุ่มสั่งงานด้วยเสียงทันทีหลังคำนวณเสร็จ
+        voiceBtn.style.display = "block";
 
-        // ตั้งเวลาถอยหลังเพื่อส่งสัญญาณเตือน (แปลงนาทีเป็นมิลลิวินาที)
         let msRemaining = remainingMinutes * 60 * 1000;
         alarmTimer = setTimeout(triggerAlarm, msRemaining);
     }
 }
 
-// ฟังก์ชันปล่อยเสียงบี๊บยาวๆ และส่งสัญญาณสั่น 30 ครั้งทะลุจอ
+function openVoiceAssistant() {
+    // คำสั่งยิงตรงไปปลุก Google Assistant บนเครื่อง Android ทันที
+    window.location.href = "intent://#Intent;action=android.intent.action.VOICE_COMMAND;end";
+}
+
 function triggerAlarm() {
-    // 1. ส่ง Notification เด้งขึ้นหน้าจอหลักแม้จะอยู่แอปอื่น
     if ('Notification' in window && Notification.permission === 'granted') {
         new Notification("⏱️ เวลาของครบกำหนดแล้ว!", {
             body: "ครบจำนวนเวลาที่ตั้งไว้เรียบร้อยแล้ว กรุณาตรวจสอบ",
             icon: "https://cdn-icons-png.flaticon.com/512/2088/2088617.png",
-            requireInteraction: true // ให้แจ้งเตือนค้างไว้จนกว่าจะกดปิด
+            requireInteraction: true
         });
     }
 
-    // สร้างระบบเสียงสังเคราะห์ (Web Audio API) เพื่อให้ส่งเสียงบี๊บได้ในระดับลึกแม้ปิดหน้าจอ
     let audioCtx = new (window.AudioContext || window.webkitAudioContext)();
     let count = 0;
     const totalBeeps = 30;
@@ -244,7 +231,6 @@ function triggerAlarm() {
     function playBeep() {
         if (count >= totalBeeps) return;
 
-        // ส่งสัญญาณสั่นของโทรศัพท์ (สั่นยาว 600 มิลลิวินาที)
         if ('vibrate' in navigator) {
             navigator.vibrate(600);
         }
@@ -253,20 +239,18 @@ function triggerAlarm() {
         let gain = audioCtx.createGain();
         
         osc.type = 'sine';
-        osc.frequency.setValueAtTime(880, audioCtx.currentTime); // ความถี่เสียงบี๊บแหลมสูง
+        osc.frequency.setValueAtTime(880, audioCtx.currentTime); 
         
         gain.gain.setValueAtTime(1, audioCtx.currentTime);
-        // ทำให้เสียงค่อยๆ จางลงตอนท้ายของเสียงบี๊บแต่ละครั้งเพื่อความนุ่มแต่ชัด
         gain.gain.exponentialRampToValueAtTime(0.01, audioCtx.currentTime + 0.6); 
 
         osc.connect(gain);
         gain.connect(audioCtx.destination);
 
         osc.start();
-        osc.stop(audioCtx.currentTime + 0.6); // เสียงยาว 0.6 วินาที (บี๊บยาว)
+        osc.stop(audioCtx.currentTime + 0.6); 
 
         count++;
-        // เว้นช่วง 1 วินาทีแล้วดังครั้งต่อไป จนครบ 30 ครั้ง
         setTimeout(playBeep, 1000);
     }
 
@@ -275,7 +259,7 @@ function triggerAlarm() {
 
 // ระบบลงทะเบียน PWA
 if ('serviceWorker' in navigator) {
-    navigator.serviceWorker.register('sw.js').catch(err => console.log("SW error:", err));
+    navigator.worker.register('sw.js').catch(err => console.log("SW error:", err));
 }
 
 let deferredPrompt;
