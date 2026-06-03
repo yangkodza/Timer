@@ -25,11 +25,13 @@
             max-width: 420px; 
             margin-top: 10px; 
         }
+        /* แก้ไขหัวข้อ: บีบขนาดและพื้นที่ ไม่ให้ล้นตกลงมาสองบรรทัด */
         h2 { 
             text-align: center; 
             color: #212529; 
             margin-bottom: 25px; 
-            font-size: 22px;
+            font-size: calc(16px + 1vw); /* ปรับขนาดตามหน้าจอ */
+            white-space: nowrap;         /* บังคับให้อยู่ในบรรทัดเดียว */
             font-weight: 700;
         }
         .input-group { 
@@ -110,7 +112,6 @@
             display: none;
             line-height: 1.6;
         }
-        /* ปุ่มสำหรับกดติดตั้งแอป */
         #install_btn {
             background-color: #28a745;
             display: none;
@@ -118,12 +119,20 @@
         #install_btn:hover {
             background-color: #218838;
         }
+        .status-text {
+            text-align: center;
+            font-size: 12px;
+            color: #6c757d;
+            margin-top: -5px;
+            margin-bottom: 15px;
+        }
     </style>
 </head>
 <body>
 
 <div class="card">
     <h2>⏱️ คำนวณเวลา & เวลาสิ้นสุด</h2>
+    <div id="noti_status" class="status-text">กำลังตั้งค่าระบบแจ้งเตือน...</div>
     
     <button id="install_btn">📲 ติดตั้งแอปคำนวณเวลา</button>
 
@@ -150,7 +159,28 @@
 </div>
 
 <script>
+let alarmTimer = null;
+
+// ขออนุญาตแจ้งเตือนเมื่อเปิดแอป
+window.addEventListener('load', () => {
+    if ('Notification' in window) {
+        Notification.requestPermission().then(permission => {
+            let statusDiv = document.getElementById('noti_status');
+            if (permission === 'granted') {
+                statusDiv.innerHTML = "✅ ระบบแจ้งเตือนทะลุจอพร้อมใช้งาน";
+                statusDiv.style.color = "#28a745";
+            } else {
+                statusDiv.innerHTML = "⚠️ โปรดอนุญาตสิทธิ์แจ้งเตือนเพื่อให้ระบบดังเมื่อสลับแอป";
+                statusDiv.style.color = "#dc3545";
+            }
+        });
+    }
+});
+
 function calculateTimeAndEnd() {
+    // ล้างตัวนับเวลาเก่าทิ้งถ้ามีการกดคำนวณใหม่
+    if (alarmTimer) clearTimeout(alarmTimer);
+
     let currentHr = parseInt(document.getElementById('current_hr').value) || 0;
     let currentMin = parseInt(document.getElementById('current_min').value) || 0;
     let targetHr = parseInt(document.getElementById('target_hr').value) || 0;
@@ -188,10 +218,62 @@ function calculateTimeAndEnd() {
 
         endtimeBox.style.display = "block";
         endtimeBox.innerHTML = `🏁 จะครบกำหนดตอนเวลาประมาณ:<br><span style="font-size: 26px; color: #004085; font-weight: 800;">${endHr}:${endMin} น.</span>`;
+
+        // ตั้งเวลาถอยหลังเพื่อส่งสัญญาณเตือน (แปลงนาทีเป็นมิลลิวินาที)
+        let msRemaining = remainingMinutes * 60 * 1000;
+        alarmTimer = setTimeout(triggerAlarm, msRemaining);
     }
 }
 
-// ---- สคริปต์ระบบ PWA สำหรับลงทะเบียนตัวแอป ----
+// ฟังก์ชันปล่อยเสียงบี๊บยาวๆ และส่งสัญญาณสั่น 30 ครั้งทะลุจอ
+function triggerAlarm() {
+    // 1. ส่ง Notification เด้งขึ้นหน้าจอหลักแม้จะอยู่แอปอื่น
+    if ('Notification' in window && Notification.permission === 'granted') {
+        new Notification("⏱️ เวลาของครบกำหนดแล้ว!", {
+            body: "ครบจำนวนเวลาที่ตั้งไว้เรียบร้อยแล้ว กรุณาตรวจสอบ",
+            icon: "https://cdn-icons-png.flaticon.com/512/2088/2088617.png",
+            requireInteraction: true // ให้แจ้งเตือนค้างไว้จนกว่าจะกดปิด
+        });
+    }
+
+    // สร้างระบบเสียงสังเคราะห์ (Web Audio API) เพื่อให้ส่งเสียงบี๊บได้ในระดับลึกแม้ปิดหน้าจอ
+    let audioCtx = new (window.AudioContext || window.webkitAudioContext)();
+    let count = 0;
+    const totalBeeps = 30;
+
+    function playBeep() {
+        if (count >= totalBeeps) return;
+
+        // ส่งสัญญาณสั่นของโทรศัพท์ (สั่นยาว 600 มิลลิวินาที)
+        if ('vibrate' in navigator) {
+            navigator.vibrate(600);
+        }
+
+        let osc = audioCtx.createOscillator();
+        let gain = audioCtx.createGain();
+        
+        osc.type = 'sine';
+        osc.frequency.setValueAtTime(880, audioCtx.currentTime); // ความถี่เสียงบี๊บแหลมสูง
+        
+        gain.gain.setValueAtTime(1, audioCtx.currentTime);
+        // ทำให้เสียงค่อยๆ จางลงตอนท้ายของเสียงบี๊บแต่ละครั้งเพื่อความนุ่มแต่ชัด
+        gain.gain.exponentialRampToValueAtTime(0.01, audioCtx.currentTime + 0.6); 
+
+        osc.connect(gain);
+        gain.connect(audioCtx.destination);
+
+        osc.start();
+        osc.stop(audioCtx.currentTime + 0.6); // เสียงยาว 0.6 วินาที (บี๊บยาว)
+
+        count++;
+        // เว้นช่วง 1 วินาทีแล้วดังครั้งต่อไป จนครบ 30 ครั้ง
+        setTimeout(playBeep, 1000);
+    }
+
+    playBeep();
+}
+
+// ระบบลงทะเบียน PWA
 if ('serviceWorker' in navigator) {
     navigator.serviceWorker.register('sw.js').catch(err => console.log("SW error:", err));
 }
@@ -202,7 +284,7 @@ const installBtn = document.getElementById('install_btn');
 window.addEventListener('beforeinstallprompt', (e) => {
     e.preventDefault();
     deferredPrompt = e;
-    installBtn.style.display = 'block'; // แสดงปุ่มติดตั้ง
+    installBtn.style.display = 'block';
 });
 
 installBtn.addEventListener('click', async () => {
@@ -214,11 +296,6 @@ installBtn.addEventListener('click', async () => {
         }
         deferredPrompt = null;
     }
-});
-
-window.addEventListener('appinstalled', () => {
-    installBtn.style.display = 'none';
-    alert('ติดตั้งแอปสำเร็จแล้วบนหน้าจอโฮมของคุณ! 🎉');
 });
 </script>
 
